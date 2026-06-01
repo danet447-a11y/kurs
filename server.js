@@ -24,6 +24,10 @@ app.get('/products', async (req, res) => {
   }
 })
 
+app.get("/ping", (req, res) => {
+  res.json({ ok:  true});
+})
+
 app.listen(process.env.PORT || 10000, () => {
   console.log('Server started')
 })
