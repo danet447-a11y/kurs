@@ -7,24 +7,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔹 Подключение к БД (Beget)
+// Подключение к БД
 const pool = mysql.createPool({
-    host: process.env.DB_HOST,     // alyonyvd.beget.tech
-    user: process.env.DB_USER,     // alyonyvd_alyonyn
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME, // alyonyvd_alyonyn
+    database: process.env.DB_NAME,
 });
 
-// 🔹 Пинг для проверки
+// Пинг
 app.get("/ping", (req, res) => {
     res.json({ ok: true });
 });
 
-/* ================== ТОВАРЫ ================== */
-// Таблица: product
-// id_product, category, subject, type, price
+/* ================== PRODUCTS ================== */
 
-// GET /products — отдать данные в формате, который ждёт фронт
 app.get("/products", async (req, res) => {
     try {
         const [rows] = await pool.query("SELECT * FROM product");
@@ -34,7 +31,7 @@ app.get("/products", async (req, res) => {
         rows.forEach(item => {
             const category = item.category;
             const subject = item.subject;
-            const name = item.type; // поле type = название работы
+            const name = item.type;
             const price = item.price;
 
             if (!data[category]) data[category] = {};
@@ -53,53 +50,8 @@ app.get("/products", async (req, res) => {
     }
 });
 
-// POST /products — добавить товар
-// body: { category, subject, type, price }
-app.post("/products", async (req, res) => {
-    const { category, subject, type, price } = req.body;
+/* ================== REGISTER ================== */
 
-    if (!category || !subject || !type || !price) {
-        return res.status(400).json({ error: "Не хватает полей" });
-    }
-
-    try {
-        const [result] = await pool.query(
-            "INSERT INTO product (category, subject, type, price) VALUES (?, ?, ?, ?)",
-            [category, subject, type, price]
-        );
-
-        res.json({
-            id_product: result.insertId,
-            category,
-            subject,
-            type,
-            price
-        });
-    } catch (e) {
-        console.error("Ошибка POST /products:", e);
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// DELETE /products/:id — удалить товар
-app.delete("/products/:id", async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        await pool.query("DELETE FROM product WHERE id_product = ?", [id]);
-        res.json({ ok: true });
-    } catch (e) {
-        console.error("Ошибка DELETE /products:", e);
-        res.status(500).json({ error: e.message });
-    }
-});
-
-/* ================== КЛИЕНТЫ ================== */
-// Таблица: client
-// id_client, surname, name, login, password, phone, address
-
-// POST /register — регистрация
-// body: { surname, name, login, password, phone, address }
 app.post("/register", async (req, res) => {
     const { surname, name, login, password, phone, address } = req.body;
 
@@ -136,8 +88,8 @@ app.post("/register", async (req, res) => {
     }
 });
 
-// POST /login — вход
-// body: { login, password }
+/* ================== LOGIN ================== */
+
 app.post("/login", async (req, res) => {
     const { login, password } = req.body;
 
@@ -175,11 +127,8 @@ app.post("/login", async (req, res) => {
     }
 });
 
-/* ================== КОРЗИНА ================== */
-// Таблица: cart
-// id_client, id_product, amount
+/* ================== CART ================== */
 
-// GET /cart?clientId=1 — получить корзину клиента
 app.get("/cart", async (req, res) => {
     const { clientId } = req.query;
 
@@ -210,8 +159,6 @@ app.get("/cart", async (req, res) => {
     }
 });
 
-// POST /cart/add — добавить в корзину
-// body: { clientId, productId, amount }
 app.post("/cart/add", async (req, res) => {
     const { clientId, productId, amount } = req.body;
 
@@ -245,8 +192,6 @@ app.post("/cart/add", async (req, res) => {
     }
 });
 
-// POST /cart/remove — убрать из корзины
-// body: { clientId, productId, amount }
 app.post("/cart/remove", async (req, res) => {
     const { clientId, productId, amount } = req.body;
 
@@ -285,7 +230,7 @@ app.post("/cart/remove", async (req, res) => {
     }
 });
 
-/* ================== СТАРТ СЕРВЕРА ================== */
+/* ================== START ================== */
 
 app.listen(process.env.PORT || 10000, () => {
     console.log("Server started");
