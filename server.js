@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Подключение к БД
+// Подключение к БД (та же, откуда берутся products)
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -123,109 +123,6 @@ app.post("/login", async (req, res) => {
         });
     } catch (e) {
         console.error("Ошибка /login:", e);
-        res.status(500).json({ error: e.message });
-    }
-});
-
-/* ================== CART ================== */
-
-app.get("/cart", async (req, res) => {
-    const { clientId } = req.query;
-
-    if (!clientId) {
-        return res.status(400).json({ error: "Нет clientId" });
-    }
-
-    try {
-        const [rows] = await pool.query(
-            `SELECT 
-                c.id_client,
-                c.id_product,
-                c.amount,
-                p.category,
-                p.subject,
-                p.type,
-                p.price
-             FROM cart c
-             JOIN product p ON c.id_product = p.id_product
-             WHERE c.id_client = ?`,
-            [clientId]
-        );
-
-        res.json(rows);
-    } catch (e) {
-        console.error("Ошибка GET /cart:", e);
-        res.status(500).json({ error: e.message });
-    }
-});
-
-app.post("/cart/add", async (req, res) => {
-    const { clientId, productId, amount } = req.body;
-
-    if (!clientId || !productId || !amount) {
-        return res.status(400).json({ error: "Не хватает полей" });
-    }
-
-    try {
-        const [rows] = await pool.query(
-            "SELECT amount FROM cart WHERE id_client = ? AND id_product = ?",
-            [clientId, productId]
-        );
-
-        if (rows.length > 0) {
-            const newAmount = rows[0].amount + amount;
-            await pool.query(
-                "UPDATE cart SET amount = ? WHERE id_client = ? AND id_product = ?",
-                [newAmount, clientId, productId]
-            );
-        } else {
-            await pool.query(
-                "INSERT INTO cart (id_client, id_product, amount) VALUES (?, ?, ?)",
-                [clientId, productId, amount]
-            );
-        }
-
-        res.json({ ok: true });
-    } catch (e) {
-        console.error("Ошибка POST /cart/add:", e);
-        res.status(500).json({ error: e.message });
-    }
-});
-
-app.post("/cart/remove", async (req, res) => {
-    const { clientId, productId, amount } = req.body;
-
-    if (!clientId || !productId || !amount) {
-        return res.status(400).json({ error: "Не хватает полей" });
-    }
-
-    try {
-        const [rows] = await pool.query(
-            "SELECT amount FROM cart WHERE id_client = ? AND id_product = ?",
-            [clientId, productId]
-        );
-
-        if (rows.length === 0) {
-            return res.json({ ok: true });
-        }
-
-        const newAmount = rows[0].amount - amount;
-
-        if (newAmount <= 0) {
-            await pool.query(
-                "DELETE FROM cart WHERE id_client = ? AND id_product = ?",
-                [clientId, productId]
-            );
-        } else {
-            await pool.query(
-                "UPDATE cart SET amount = ? WHERE id_client = ? AND id_product = ?",
-                [newAmount, clientId, productId]
-            );
-        }
-
-        res.json({ ok: true });
-    } catch (e) {
-        console.error("Ошибка POST /cart/remove:", e);
         res.status(500).json({ error: e.message });
     }
 });
